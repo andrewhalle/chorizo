@@ -1,4 +1,3 @@
-use futures::TryStreamExt;
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use tide::Request;
 
@@ -31,17 +30,33 @@ async fn main() -> tide::Result<()> {
     // XXX favicon
     // XXX frontend
     let mut app = tide::with_state(State { db: pool });
-    app.at("/hello").get(test);
+    app.with(tide::sessions::SessionMiddleware::new(
+        tide::sessions::MemoryStore::new(),
+        std::env::var("TIDE_SECRET").expect("Please provide a tide secret.").as_bytes(),
+    ));
+    app.at("/login/:username").get(login);
+    app.at("/hello").get(hello);
     app.listen("127.0.0.1:8080").await?;
     Ok(())
 }
 
-async fn test(req: Request<State>) -> tide::Result {
-    let users = sqlx::query_as::<_, User>("select * from user")
-        .fetch(&req.state().db)
-        .try_collect::<Vec<User>>()
-        .await
-        .expect("could not fetch users"); // turn this into an error page
+async fn login(mut req: Request<State>) -> tide::Result {
+    let username = req.param("username")?.to_owned();
+    let session = req.session_mut();
 
-    Ok(format!("Users: {:?}", users).into())
+    session.insert("logged_in", true)?;
+    session.insert("username", username)?;
+
+    Ok("{}".into())
+}
+
+async fn hello(req: Request<State>) -> tide::Result {
+    let logged_in: bool = req.session().get("logged_in").unwrap_or(false);
+
+    if logged_in {
+        let username: String = req.session().get("username").unwrap();
+        Ok(format!("Hello, {}!", username).into())
+    } else {
+        Ok("Hello, unknown user!".into())
+    }
 }
