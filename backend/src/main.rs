@@ -1,5 +1,6 @@
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use tide::Request;
+use serde::{Serialize, Deserialize};
 
 #[derive(Clone)]
 struct State {
@@ -34,18 +35,25 @@ async fn main() -> tide::Result<()> {
         tide::sessions::MemoryStore::new(),
         std::env::var("TIDE_SECRET").expect("Please provide a tide secret.").as_bytes(),
     ));
-    app.at("/login/:username").get(login);
-    app.at("/hello").get(hello);
+    app.at("/api/login").post(login);
+    app.at("/api/hello").get(hello);
     app.listen("127.0.0.1:8080").await?;
     Ok(())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct LoginRequest {
+    username: String,
+    password: String,
+}
+
 async fn login(mut req: Request<State>) -> tide::Result {
-    let username = req.param("username")?.to_owned();
+    let body: LoginRequest = req.body_json().await?;
+    dbg!(&body);
     let session = req.session_mut();
 
     session.insert("logged_in", true)?;
-    session.insert("username", username)?;
+    session.insert("username", body.username)?;
 
     Ok("{}".into())
 }

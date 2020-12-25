@@ -446,6 +446,7 @@ dependencies = [
  "async-std",
  "dotenv",
  "futures",
+ "serde",
  "sqlx",
  "tide",
 ]

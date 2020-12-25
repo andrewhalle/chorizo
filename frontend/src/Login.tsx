@@ -1,35 +1,46 @@
-import React, {
-  ChangeEvent,
-  Dispatch,
-  FormEvent,
-  FunctionComponent,
-  SetStateAction
-} from 'react';
+import React, { FormEvent } from 'react';
+import {
+  Button,
+  Form,
+  FormGroup,
+  Input,
+  Label
+} from 'reactstrap';
+import { withRouter } from 'react-router-dom';
 
-function changer(
-  f: Dispatch<SetStateAction<string>>
-): (e: ChangeEvent<HTMLInputElement>) => void {
-  return (e) => f(e.target.value);
-}
-
-export const Login: FunctionComponent = () => {
-  const [username, setUsername] = React.useState('');
-  const [password, setPassword] = React.useState('');
-
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+export const Login = withRouter(({ history }) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = { username, password };
 
-    console.log(data);
+    const data = new FormData(e.target as any);
+    const body: any = {};
+    for (const [key, value] of data.entries()) {
+      body[key] = value;
+    }
+
+    let res = await fetch('/api/login', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+
+    if (res.status === 200) {
+      history.push('/');
+    } else {
+      // XXX show error
+    }
   };
 
   return (
-    <form onSubmit={onSubmit}>
-      <label>Username</label>
-      <input type="text" value={username} onChange={changer(setUsername)} />
-      <label>Password</label>
-      <input type="password" value={password} onChange={changer(setPassword)} />
-      <input type="submit" value="Login" />
-    </form>
+    <Form onSubmit={onSubmit}>
+      <FormGroup>
+        <Label for="username">Username</Label>
+        <Input type="text" name="username" id="username" />
+      </FormGroup>
+      <FormGroup>
+        <Label for="password">Password</Label>
+        <Input type="password" name="password" id="password" />
+      </FormGroup>
+      <Button>Submit</Button>
+    </Form>
   );
-};
+});
