@@ -1,4 +1,4 @@
-import React, { FormEvent } from 'react';
+import React, { FunctionComponent, FormEvent } from 'react';
 import {
   Button,
   Form,
@@ -6,27 +6,23 @@ import {
   Input,
   Label
 } from 'reactstrap';
-import { withRouter } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { sendFormToBackend } from './utils';
 
-export const Login = withRouter(({ history }) => {
+export const Login: FunctionComponent = () => {
+  const history = useHistory();
+  const dispatch = useDispatch();
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data = new FormData(e.target as any);
-    const body: any = {};
-    for (const [key, value] of data.entries()) {
-      body[key] = value;
-    }
-
-    let res = await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
-
-    if (res.status === 200) {
+    try {
+      const payload = await sendFormToBackend('/api/login', e.target as HTMLFormElement);
+      dispatch({ type: 'auth/login', payload });
       history.push('/');
-    } else {
-      // XXX show error
+    } catch (e) {
+      history.push('/error');
     }
   };
 
@@ -43,4 +39,4 @@ export const Login = withRouter(({ history }) => {
       <Button>Submit</Button>
     </Form>
   );
-});
+};

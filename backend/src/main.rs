@@ -1,6 +1,9 @@
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
-use tide::Request;
+use tide::{Request, Response, StatusCode};
 use serde::{Serialize, Deserialize};
+use tide::prelude::*;
+use tide::utils::After;
+use anyhow::anyhow;
 
 #[derive(Clone)]
 struct State {
@@ -35,6 +38,14 @@ async fn main() -> tide::Result<()> {
         tide::sessions::MemoryStore::new(),
         std::env::var("TIDE_SECRET").expect("Please provide a tide secret.").as_bytes(),
     ));
+    app.with(After(|mut res: Response| async {
+        if let Some(err) = res.downcast_error::<anyhow::Error>() {
+            let msg = "Errored".to_owned();
+            res.set_status(StatusCode::InternalServerError);
+            res.set_body(msg);
+        }
+        Ok(res)
+    }));
     app.at("/api/login").post(login);
     app.at("/api/hello").get(hello);
     app.listen("127.0.0.1:8080").await?;
@@ -52,10 +63,17 @@ async fn login(mut req: Request<State>) -> tide::Result {
     dbg!(&body);
     let session = req.session_mut();
 
-    session.insert("logged_in", true)?;
-    session.insert("username", body.username)?;
+    if body.password != "test" {
+        return Err(tide::Error::new(500, anyhow!("Login failed")));
+    }
 
-    Ok("{}".into())
+    session.insert("logged_in", true)?;
+    session.insert("username", body.username.clone())?;
+
+    Ok(json!({
+        "loggedIn": true,
+        "username": body.username
+    }).into())
 }
 
 async fn hello(req: Request<State>) -> tide::Result {
