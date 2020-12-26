@@ -8,7 +8,7 @@ import {
 } from 'reactstrap';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { sendFormToBackend } from './utils';
+import { postFormToBackend } from './utils';
 import './Login.css';
 
 export const Login: FunctionComponent = () => {
@@ -19,7 +19,7 @@ export const Login: FunctionComponent = () => {
     e.preventDefault();
 
     try {
-      const payload = await sendFormToBackend('/api/login', e.target as HTMLFormElement);
+      const payload = await postFormToBackend('/api/login', e.target as HTMLFormElement);
       dispatch({ type: 'auth/login', payload });
       history.push('/');
     } catch (e) {

@@ -47,6 +47,7 @@ async fn main() -> tide::Result<()> {
         Ok(res)
     }));
     app.at("/api/login").post(login);
+    app.at("/api/chores").get(get_chores);
     app.at("/api/hello").get(hello);
     app.listen("127.0.0.1:8080").await?;
     Ok(())
@@ -74,6 +75,17 @@ async fn login(mut req: Request<State>) -> tide::Result {
         "loggedIn": true,
         "username": body.username
     }).into())
+}
+
+#[derive(Deserialize, Debug)]
+struct ChoresRequest {
+    date: String,
+}
+
+async fn get_chores(mut req: Request<State>) -> tide::Result {
+    let query: ChoresRequest = req.query()?;
+    dbg!(query);
+    Ok(r#"{"chores":[]}"#.into())
 }
 
 async fn hello(req: Request<State>) -> tide::Result {
