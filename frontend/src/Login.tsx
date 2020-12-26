@@ -9,6 +9,7 @@ import {
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { sendFormToBackend } from './utils';
+import './Login.css';
 
 export const Login: FunctionComponent = () => {
   const history = useHistory();
@@ -27,16 +28,21 @@ export const Login: FunctionComponent = () => {
   };
 
   return (
-    <Form onSubmit={onSubmit}>
-      <FormGroup>
-        <Label for="username">Username</Label>
-        <Input type="text" name="username" id="username" />
-      </FormGroup>
-      <FormGroup>
-        <Label for="password">Password</Label>
-        <Input type="password" name="password" id="password" />
-      </FormGroup>
-      <Button>Submit</Button>
-    </Form>
+    <div className="login-form-box">
+      <div className="login-form">
+        <h3>Sign in</h3>
+        <Form onSubmit={onSubmit}>
+          <FormGroup>
+            <Label for="username">Username</Label>
+            <Input type="text" name="username" id="username" />
+          </FormGroup>
+          <FormGroup>
+            <Label for="password">Password</Label>
+            <Input type="password" name="password" id="password" />
+          </FormGroup>
+          <Button>Submit</Button>
+        </Form>
+      </div>
+    </div>
   );
 };
