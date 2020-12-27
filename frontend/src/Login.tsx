@@ -19,7 +19,7 @@ export const Login: FunctionComponent = () => {
     e.preventDefault();
 
     try {
-      const payload = await postFormToBackend('/api/login', e.target as HTMLFormElement);
+      const payload = await postFormToBackend('/api/auth/login', e.target as HTMLFormElement);
       dispatch({ type: 'auth/login', payload });
       history.push('/');
     } catch (e) {

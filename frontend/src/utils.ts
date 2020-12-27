@@ -6,11 +6,11 @@ type Chore = {
 };
 
 type Api = {
-  'POST /api/login': {
+  'POST /api/auth/login': {
     request: { params?: never, username: string, password: string },
     response: { loggedIn: boolean, username: string }
   }
-  'GET /api/chores': {
+  'GET /api/chore': {
     request: { params: { date: string } },
     response: { chores: Chore[] }
   }

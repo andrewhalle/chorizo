@@ -6,7 +6,7 @@ export const Home: FunctionComponent = () => {
   const username = useSelector(getUsername);
 
   const onClick = async () => {
-    const chores = await getFromBackend('/api/chores', { params: { date: '2020-12-25' } });
+    const chores = await getFromBackend('/api/chore', { params: { date: '2020-12-25' } });
 
     console.log(chores);
   };
