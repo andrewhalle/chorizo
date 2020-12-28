@@ -1,8 +1,9 @@
 use tide::Request;
 use super::State;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use sqlx::SqlitePool;
 use time::{ Duration, Date};
+use tide::prelude::*;
 
 #[derive(Deserialize, Debug)]
 struct ChoresRequest {
@@ -17,12 +18,12 @@ struct RecurringChore {
     next_instance_date: String,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Serialize, Debug, sqlx::FromRow)]
 struct Chore {
     id: i64,
     title: String,
     assignee: Option<i64>,
-    instance_of: Option<i64>,
+    instance_of: i64,
     date: String,
     complete: bool,
 }
@@ -40,24 +41,33 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
         .fetch_all(&mut conn).await?;
 
     for recurring_chore in recurring_chores {
-        let next_instance_date = Date::parse(&recurring_chore.next_instance_date, "%F")?
-            + Duration::days(recurring_chore.repeat_every_days);
-        let next_instance_date = next_instance_date.format("%Y-%m-%d");
+        let mut next_instance_date = Date::parse(
+            &recurring_chore.next_instance_date,
+            "%F",
+        )?;
+        let requested = Date::parse(date, "%F")?;
 
-        sqlx::query!(
-            "INSERT INTO
-               chore (title, assignee, instance_of, date)
-             VALUES (?, ?, ?, ?)",
-             recurring_chore.title,
-             None::<i64>,
-             recurring_chore.id,
-             recurring_chore.next_instance_date,
-        ).execute(&mut conn).await?;
-        sqlx::query!(
-            "UPDATE recurring_chore SET next_instance_date = ? WHERE id = ?",
-            next_instance_date,
-            recurring_chore.id,
-        ).execute(&mut conn).await?;
+        while next_instance_date <= requested {
+            let formatted = next_instance_date.format("%Y-%m-%d");
+
+            sqlx::query!(
+                "INSERT INTO
+                   chore (title, assignee, instance_of, date)
+                 VALUES (?, ?, ?, ?)",
+                 recurring_chore.title,
+                 None::<i64>,
+                 recurring_chore.id,
+                 formatted,
+            ).execute(&mut conn).await?;
+
+            next_instance_date += Duration::days(recurring_chore.repeat_every_days);
+            let formatted = next_instance_date.format("%Y-%m-%d");
+            sqlx::query!(
+                "UPDATE recurring_chore SET next_instance_date = ? WHERE id = ?",
+                formatted,
+                recurring_chore.id,
+            ).execute(&mut conn).await?;
+        }
     }
 
     sqlx::query!("COMMIT").execute(&mut conn).await?;
@@ -70,7 +80,13 @@ async fn get_chores(req: Request<State>) -> tide::Result {
 
     add_next_chore_instances_before_date(&req.state().db, &query.date).await?;
 
-    Ok(r#"{"chores":[]}"#.into())
+    let mut conn = (&req.state().db).acquire().await?;
+    let chores = sqlx::query_as!(Chore,
+        "SELECT * FROM chore WHERE date = ?",
+        query.date,
+    ).fetch_all(&mut conn).await?;
+
+    Ok(json!({ "chores": chores }).into())
 }
 
 pub(super) fn chore_api(state: State) -> tide::Server<State> {

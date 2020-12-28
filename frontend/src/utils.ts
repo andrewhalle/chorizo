@@ -1,7 +1,8 @@
 export const getUsername = (store: any) => store.username;
 
-type Chore = {
+export type Chore = {
   id: string;
+  assignee: string | null;
   title: string;
 };
 

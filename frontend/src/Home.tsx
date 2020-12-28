@@ -1,20 +1,33 @@
 import React, { FunctionComponent } from 'react';
-import { useSelector } from 'react-redux';
-import { getUsername, getFromBackend } from './utils';
+import { Chore, getFromBackend } from './utils';
+import moment from 'moment';
 
 export const Home: FunctionComponent = () => {
-  const username = useSelector(getUsername);
+  const [chores, setChores] = React.useState([] as Chore[]);
 
-  const onClick = async () => {
-    const chores = await getFromBackend('/api/chore', { params: { date: '2020-12-25' } });
+  React.useEffect(() => {
+    (async () => {
+      const { chores } = await getFromBackend(
+        '/api/chore',
+        {
+          params: { date: moment().format('YYYY-MM-DD') }
+        }
+      );
 
-    console.log(chores);
-  };
+      setChores(chores);
+    })();
+  }, []);
 
   return (
     <div>
-      <p>Hello, {username || 'unknown user'}!</p>
-      <button onClick={onClick}>Make request</button>
+      <ul>
+        { chores.map((c) => (
+          <li>
+            <p>Title: {c.title}</p>
+            <p>Assignee: {c.assignee}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
