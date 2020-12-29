@@ -1,8 +1,10 @@
-use tide::Request;
+use tide::{StatusCode, Next, Response, Request};
 use super::State;
 use serde::{Deserialize};
 use tide::prelude::*;
 use anyhow::anyhow;
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, sqlx::FromRow)]
 struct User {
@@ -16,6 +18,16 @@ struct User {
 struct LoginRequest {
     username: String,
     password: String,
+}
+
+pub(super) fn auth_middleware<'a>(req: Request<State>, next: Next<'a, State>) -> Pin<Box<dyn Future<Output = tide::Result> + Send + 'a>> {
+    Box::pin(async {
+        if let Some(_user) = req.session().get::<String>("username") {
+            Ok(next.run(req).await)
+        } else {
+            Ok(Response::new(StatusCode::Unauthorized))
+        }
+    })
 }
 
 async fn login(mut req: Request<State>) -> tide::Result {

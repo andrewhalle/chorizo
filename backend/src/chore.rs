@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use sqlx::SqlitePool;
 use time::{ Duration, Date};
 use tide::prelude::*;
+use super::auth::auth_middleware;
 
 #[derive(Deserialize, Debug)]
 struct ChoresRequest {
@@ -91,6 +92,7 @@ async fn get_chores(req: Request<State>) -> tide::Result {
 
 pub(super) fn chore_api(state: State) -> tide::Server<State> {
     let mut api = tide::with_state(state);
+    api.with(auth_middleware);
     api.at("/").get(get_chores);
 
     api
