@@ -48,6 +48,12 @@ async fn main() -> tide::Result<()> {
 
     let chore_state = app.state().clone();
     app.at("/api/chore").nest(chore_api(chore_state));
+
+    if cfg!(feature = "serve-frontend") {
+        let dir = std::env::var("FRONTEND_DIR").expect("Please provide a frontend dir.");
+        app.at("/").serve_dir(dir)?;
+    }
+
     app.listen("127.0.0.1:8080").await?;
     Ok(())
 }

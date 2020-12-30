@@ -1,9 +1,14 @@
 import React, { FunctionComponent } from 'react';
-import { Chore, getFromBackend } from './utils';
+import { Chore as IChore, getFromBackend } from './utils';
+import Chore from './Chore';
+import { Row, Col } from 'reactstrap';
+import './Home.css';
+
 import moment from 'moment';
+import _ from 'lodash';
 
 export const Home: FunctionComponent = () => {
-  const [chores, setChores] = React.useState([] as Chore[]);
+  const [chores, setChores] = React.useState([] as IChore[]);
 
   React.useEffect(() => {
     (async () => {
@@ -18,16 +23,22 @@ export const Home: FunctionComponent = () => {
     })();
   }, []);
 
+  const byAssignee = _.groupBy(chores, (c) => c.assignee);
+
   return (
-    <div>
-      <ul>
-        { chores.map((c) => (
-          <li>
-            <p>Title: {c.title}</p>
-            <p>Assignee: {c.assignee}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Row>
+      { Object.entries(byAssignee).map(([assignee, chores]) => (
+        <Col className="chore-column w-25">
+          {
+            chores.map((c) =>
+              <Chore
+                className="mt-2"
+                title={c.title}
+                assignee={c.assignee || 'Unassigned'} />
+            )
+          }
+        </Col>
+      )) }
+    </Row>
   );
 };
