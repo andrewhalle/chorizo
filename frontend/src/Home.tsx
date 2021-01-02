@@ -26,10 +26,7 @@ export const Home: FunctionComponent = () => {
         <Col className="chore-column w-25">
           {
             chores.map((c) =>
-              <Chore
-                className="mt-2"
-                title={c.title}
-                assignee={c.assignee || 'Unassigned'} />
+              <Chore className="mt-2" chore={c} />
             )
           }
         </Col>

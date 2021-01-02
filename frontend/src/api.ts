@@ -8,15 +8,22 @@ import { fetchAndCheckStatus } from './utils';
  *   - GET /api/chore
  *     - params: { date: string }
  *     - response: { chores: Chore[] }
+ *   - POST /api/chore
+ *     - request: Omit<Chore, 'id'>
+ *     - response: { new_chore: Chore }
+ *   - PATCH /api/chore/:id
+ *     - request: Partial<Omit<Chore, 'id' | 'title' | 'date'>>
+ *     - response: { chore: Chore }
  */
 
 // -- begin types
 
 export interface Chore {
-  id: string;
-  assignee: string | null;
+  id: number;
+  assignee: number | null;
   title: string;
   complete: boolean;
+  date: number;
 };
 
 // -- end types
@@ -56,7 +63,38 @@ async function getChore(params: GetChoreParams): Promise<GetChoreResponse> {
 
 // -- end GET /api/chore
 
-export default {
+// -- begin POST /api/chore
+
+export type PostChoreBody = Omit<Chore, 'id'>;
+
+export interface PostChoreResponse {
+  new_chore: Chore;
+}
+
+async function postChore(body: PostChoreBody): Promise<PostChoreResponse> {
+  return fetchAndCheckStatus('POST', '/api/chore', null, body);
+}
+
+// -- end POST /api/chore
+
+// -- begin PATCH /api/chore
+
+export type PatchChoreBody = Partial<Omit<Chore, 'id' | 'title' | 'date'>>;
+
+export interface PatchChoreResponse {
+  chore: Chore;
+}
+
+async function patchChore(id: number, body: PatchChoreBody): Promise<PatchChoreResponse> {
+  return fetchAndCheckStatus('PATCH', `/api/chore/${id}`, null, body);
+}
+
+// -- end POST /api/chore
+
+const api = {
   postLogin,
-  getChore
+  getChore,
+  postChore,
+  patchChore
 };
+export default api;
