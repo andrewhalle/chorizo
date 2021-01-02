@@ -8,7 +8,8 @@ import {
 } from 'reactstrap';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { postFormToBackend } from './utils';
+import api, { PostLoginBody } from './api';
+import { objectFromForm } from './utils';
 import './Login.css';
 
 export const Login: FunctionComponent = () => {
@@ -19,8 +20,9 @@ export const Login: FunctionComponent = () => {
     e.preventDefault();
 
     try {
-      const payload = await postFormToBackend('/api/auth/login', e.target as HTMLFormElement);
-      dispatch({ type: 'auth/login', payload });
+      const body: PostLoginBody = objectFromForm(e.target as HTMLFormElement);
+      const res = await api.postLogin(body);
+      dispatch({ type: 'auth/login', payload: res });
       history.push('/');
     } catch (e) {
       history.push('/error');

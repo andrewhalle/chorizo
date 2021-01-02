@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import { Chore as IChore, getFromBackend } from './utils';
+import api, { Chore as IChore } from './api';
 import Chore from './Chore';
 import { Row, Col } from 'reactstrap';
 import './Home.css';
@@ -12,12 +12,7 @@ export const Home: FunctionComponent = () => {
 
   React.useEffect(() => {
     (async () => {
-      const { chores } = await getFromBackend(
-        '/api/chore',
-        {
-          params: { date: moment().format('YYYY-MM-DD') }
-        }
-      );
+      const { chores } = await api.getChore({ date: moment().format('YYYY-MM-DD') });
 
       setChores(chores);
     })();
