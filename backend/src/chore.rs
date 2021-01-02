@@ -1,10 +1,10 @@
-use tide::Request;
-use super::State;
-use serde::{Serialize, Deserialize};
-use sqlx::SqlitePool;
-use time::{ Duration, Date};
-use tide::prelude::*;
 use super::auth::auth_middleware;
+use super::State;
+use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
+use tide::prelude::*;
+use tide::Request;
+use time::{Date, Duration};
 
 #[derive(Deserialize, Debug)]
 struct ChoresRequest {
@@ -24,9 +24,16 @@ struct Chore {
     id: i64,
     title: String,
     assignee: Option<i64>,
-    instance_of: i64,
+    instance_of: Option<i64>,
     date: String,
     complete: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CreateChore {
+    title: String,
+    assignee: Option<i64>,
+    date: String,
 }
 
 /// For all recurring chores in the database with a next_instance_date on or before
@@ -35,17 +42,16 @@ struct Chore {
 async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> anyhow::Result<()> {
     let mut conn = pool.acquire().await?;
     sqlx::query!("BEGIN").execute(&mut conn).await?;
-    let recurring_chores = sqlx::query_as!(RecurringChore,
+    let recurring_chores = sqlx::query_as!(
+        RecurringChore,
         "SELECT * FROM recurring_chore WHERE next_instance_date <= ?",
         date
     )
-        .fetch_all(&mut conn).await?;
+    .fetch_all(&mut conn)
+    .await?;
 
     for recurring_chore in recurring_chores {
-        let mut next_instance_date = Date::parse(
-            &recurring_chore.next_instance_date,
-            "%F",
-        )?;
+        let mut next_instance_date = Date::parse(&recurring_chore.next_instance_date, "%F")?;
         let requested = Date::parse(date, "%F")?;
 
         while next_instance_date <= requested {
@@ -55,11 +61,13 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
                 "INSERT INTO
                    chore (title, assignee, instance_of, date)
                  VALUES (?, ?, ?, ?)",
-                 recurring_chore.title,
-                 None::<i64>,
-                 recurring_chore.id,
-                 formatted,
-            ).execute(&mut conn).await?;
+                recurring_chore.title,
+                None::<i64>,
+                recurring_chore.id,
+                formatted,
+            )
+            .execute(&mut conn)
+            .await?;
 
             next_instance_date += Duration::days(recurring_chore.repeat_every_days);
             let formatted = next_instance_date.format("%Y-%m-%d");
@@ -67,7 +75,9 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
                 "UPDATE recurring_chore SET next_instance_date = ? WHERE id = ?",
                 formatted,
                 recurring_chore.id,
-            ).execute(&mut conn).await?;
+            )
+            .execute(&mut conn)
+            .await?;
         }
     }
 
@@ -82,18 +92,40 @@ async fn get_chores(req: Request<State>) -> tide::Result {
     add_next_chore_instances_before_date(&req.state().db, &query.date).await?;
 
     let mut conn = (&req.state().db).acquire().await?;
-    let chores = sqlx::query_as!(Chore,
-        "SELECT * FROM chore WHERE date = ?",
-        query.date,
-    ).fetch_all(&mut conn).await?;
+    let chores = sqlx::query_as!(Chore, "SELECT * FROM chore WHERE date = ?", query.date,)
+        .fetch_all(&mut conn)
+        .await?;
 
     Ok(json!({ "chores": chores }).into())
+}
+
+async fn create_chore(mut req: Request<State>) -> tide::Result {
+    let chore_creation: CreateChore = req.body_json().await?;
+
+    let mut conn = (&req.state().db).acquire().await?;
+
+    sqlx::query!("BEGIN").execute(&mut conn).await?;
+    sqlx::query!(
+        "INSERT INTO chore (title, assignee, date) VALUES (?, ?, ?)",
+        chore_creation.title,
+        chore_creation.assignee,
+        chore_creation.date,
+    )
+    .execute(&mut conn)
+    .await?;
+    let chore = sqlx::query_as!(Chore, "SELECT * from chore where id = last_insert_rowid()",)
+        .fetch_one(&mut conn)
+        .await?;
+    sqlx::query!("COMMIT").execute(&mut conn).await?;
+
+    Ok(json!({ "new_chore": chore }).into())
 }
 
 pub(super) fn chore_api(state: State) -> tide::Server<State> {
     let mut api = tide::with_state(state);
     api.with(auth_middleware);
     api.at("/").get(get_chores);
+    api.at("/").post(create_chore);
 
     api
 }

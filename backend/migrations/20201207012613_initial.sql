@@ -17,7 +17,7 @@ create table chore (
   id INTEGER PRIMARY KEY ASC NOT NULL,
   title TEXT NOT NULL,
   assignee INTEGER,
-  instance_of INTEGER NOT NULL,
+  instance_of INTEGER,
   date TEXT NOT NULL,
   complete BOOLEAN NOT NULL DEFAULT false,
   FOREIGN KEY(assignee) REFERENCES user(id)
