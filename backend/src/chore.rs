@@ -29,11 +29,28 @@ struct Chore {
     complete: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct CreateChore {
     title: String,
     assignee: Option<i64>,
     date: String,
+}
+
+#[derive(Deserialize)]
+struct UpdateChore {
+    assignee: Option<i64>,
+    complete: Option<bool>,
+}
+
+impl Chore {
+    fn apply_update(&mut self, update: UpdateChore) {
+        if update.assignee.is_some() {
+            self.assignee = update.assignee;
+        }
+        if update.complete.is_some() {
+            self.complete = update.complete.unwrap();
+        }
+    }
 }
 
 /// For all recurring chores in the database with a next_instance_date on or before
@@ -121,11 +138,46 @@ async fn create_chore(mut req: Request<State>) -> tide::Result {
     Ok(json!({ "new_chore": chore }).into())
 }
 
+async fn edit_chore(mut req: Request<State>) -> tide::Result {
+    let id: i64 = req.param("id")?.parse()?;
+    let update: UpdateChore = req.body_json().await?;
+
+    let mut conn = (&req.state().db).acquire().await?;
+
+    sqlx::query!("BEGIN").execute(&mut conn).await?;
+    let mut chore = sqlx::query_as!(
+        Chore,
+        "SELECT * FROM chore where id = ?",
+        id
+    ).fetch_one(&mut conn).await?;
+    chore.apply_update(update);
+    sqlx::query!(
+        "
+        UPDATE
+            chore
+        SET
+            title = ?, assignee = ?, instance_of = ?, date = ?, complete = ?
+        WHERE
+            id = ?
+        ",
+        chore.title,
+        chore.assignee,
+        chore.instance_of,
+        chore.date,
+        chore.complete,
+        chore.id,
+    ).execute(&mut conn).await?;
+    sqlx::query!("COMMIT").execute(&mut conn).await?;
+
+    Ok(json!({ "chore": chore }).into())
+}
+
 pub(super) fn chore_api(state: State) -> tide::Server<State> {
     let mut api = tide::with_state(state);
     api.with(auth_middleware);
     api.at("/").get(get_chores);
     api.at("/").post(create_chore);
+    api.at("/:id").patch(edit_chore);
 
     api
 }
