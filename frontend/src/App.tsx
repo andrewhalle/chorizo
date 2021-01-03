@@ -8,23 +8,7 @@ import { Home } from './Home';
 import { ErrorPage } from './ErrorPage';
 
 import { Provider } from 'react-redux';
-import { createStore } from 'redux';
-
-// -- redux
-type LoginAction = { type: 'auth/login', payload: { username: string } }
-type Actions = LoginAction;
-type LoginState = { loggedIn: boolean, username: string };
-const initialState: LoginState = { loggedIn: false, username: '' };
-const rootReducer = (state = initialState, action: Actions) => {
-  switch (action.type) {
-    case 'auth/login':
-      return { loggedIn: true, username: action.payload.username };
-    default:
-      return state;
-  }
-};
-const store = createStore(rootReducer);
-// --
+import store from './store';
 
 function App() {
   return (

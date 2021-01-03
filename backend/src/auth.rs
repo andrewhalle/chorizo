@@ -33,9 +33,17 @@ pub(super) fn auth_middleware<'a>(
     })
 }
 
+async fn get_session(req: Request<State>) -> tide::Result {
+    let session = req.session();
+
+    Ok(json!({
+        "loggedIn": session.get("logged_in").unwrap_or(false),
+        "username": session.get::<String>("username")
+    }).into())
+}
+
 async fn login(mut req: Request<State>) -> tide::Result {
     let body: LoginRequest = req.body_json().await?;
-    dbg!(&body);
     let session = req.session_mut();
 
     if body.password != "test" {
@@ -54,6 +62,8 @@ async fn login(mut req: Request<State>) -> tide::Result {
 
 pub(super) fn auth_api(state: State) -> tide::Server<State> {
     let mut api = tide::with_state(state);
+
+    api.at("/").get(get_session);
     api.at("/login").post(login);
 
     api

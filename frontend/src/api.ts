@@ -2,6 +2,7 @@ import { fetchAndCheckStatus } from './utils';
 
 /*
  * - API:
+ *   - GET /api/auth
  *   - POST /api/auth/login
  *     - request: { username: string, password: string }
  *     - response: { username: string, loggedIn: boolean }
@@ -28,6 +29,17 @@ export interface Chore {
 
 // -- end types
 
+
+// -- begin GET /api/auth
+export interface GetAuthResponse {
+  loggedIn: boolean;
+  username: string | null;
+}
+
+async function getAuth(): Promise<GetAuthResponse> {
+  return fetchAndCheckStatus('GET', '/api/auth', null, null);
+}
+// -- end GET /api/auth
 
 // -- begin POST /api/auth/login
 
@@ -92,6 +104,7 @@ async function patchChore(id: number, body: PatchChoreBody): Promise<PatchChoreR
 // -- end POST /api/chore
 
 const api = {
+  getAuth,
   postLogin,
   getChore,
   postChore,
