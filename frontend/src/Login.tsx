@@ -1,4 +1,3 @@
-// XXX fix syntax highlighting resulting from import type
 import type { PostLoginBody } from './api';
 import React, { FunctionComponent, FormEvent } from 'react';
 import {
