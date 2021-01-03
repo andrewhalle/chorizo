@@ -7,9 +7,8 @@ import './Home.css';
 import moment from 'moment';
 import _ from 'lodash';
 
-import { getUsername } from './utils';
 import { useSelector, useDispatch } from 'react-redux';
-import { authInitialize } from './reducers/auth';
+import { getUsername, authInitialize } from './slices/auth';
 
 export const Home: FunctionComponent = () => {
   const dispatch = useDispatch();

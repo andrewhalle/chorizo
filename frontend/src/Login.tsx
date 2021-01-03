@@ -1,3 +1,5 @@
+// XXX fix syntax highlighting resulting from import type
+import type { PostLoginBody } from './api';
 import React, { FunctionComponent, FormEvent } from 'react';
 import {
   Button,
@@ -8,7 +10,7 @@ import {
 } from 'reactstrap';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import api, { PostLoginBody } from './api';
+import { authLogin } from './slices/auth';
 import { objectFromForm } from './utils';
 import './Login.css';
 
@@ -19,14 +21,8 @@ export const Login: FunctionComponent = () => {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    try {
-      const body: PostLoginBody = objectFromForm(e.target as HTMLFormElement);
-      const res = await api.postLogin(body);
-      dispatch({ type: 'auth/login', payload: res });
-      history.push('/');
-    } catch (e) {
-      history.push('/error');
-    }
+    const body: PostLoginBody = objectFromForm(e.target as HTMLFormElement);
+    dispatch(authLogin({ body, after: () => history.push('/') }));
   };
 
   return (

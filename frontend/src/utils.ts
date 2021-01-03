@@ -1,5 +1,3 @@
-export const getUsername = (store: any) => store.auth.username;
-
 export function objectFromForm<R>(form: HTMLFormElement): R {
   const data = new FormData(form);
   const body: any = {};
