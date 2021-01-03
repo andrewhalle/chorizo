@@ -1,35 +1,37 @@
 import React, { FunctionComponent } from 'react';
-import api, { Chore as IChore } from './api';
 import Chore from './Chore';
-import { Row, Col } from 'reactstrap';
+import { Row, Col, Button } from 'reactstrap';
 import './Home.css';
 
-import moment from 'moment';
-import _ from 'lodash';
-
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppDispatch } from './store';
+import { useSelector } from 'react-redux';
 import { getUsername, authInitialize } from './slices/auth';
+import {
+  getDate,
+  getChoresByAssignee,
+  choreRefresh,
+  choreNextDay,
+  chorePrevDay
+} from './slices/chore';
 
 export const Home: FunctionComponent = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
-  const [chores, setChores] = React.useState([] as IChore[]);
+  const byAssignee = useSelector(getChoresByAssignee);
   const username = useSelector(getUsername);
+  const date = useSelector(getDate);
 
   React.useEffect(() => {
     dispatch(authInitialize());
-    (async () => {
-      const { chores } = await api.getChore({ date: moment().format('YYYY-MM-DD') });
-
-      setChores(chores);
-    })();
-  }, []);
-
-  const byAssignee = _.groupBy(chores, (c) => c.assignee);
+    dispatch(choreRefresh());
+  }, [dispatch]);
 
   return (
     <div>
       <p>Hello, {username || 'unknown user'}!</p>
+      <Button onClick={() => dispatch(chorePrevDay())}>Prev day</Button>
+      <Button onClick={() => dispatch(choreNextDay())}>Next day</Button>
+      <p>Chores for {date}</p>
       <Row>
         { Object.entries(byAssignee).map(([assignee, chores]) => (
           <Col className="chore-column w-25">

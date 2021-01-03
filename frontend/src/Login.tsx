@@ -8,14 +8,14 @@ import {
   Label
 } from 'reactstrap';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from './store';
 import { authLogin } from './slices/auth';
 import { objectFromForm } from './utils';
 import './Login.css';
 
 export const Login: FunctionComponent = () => {
   const history = useHistory();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

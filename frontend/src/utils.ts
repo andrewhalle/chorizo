@@ -1,3 +1,19 @@
+import moment from 'moment';
+
+const DATE_FORMAT = 'YYYY-MM-DD';
+
+export function date(): string {
+  return moment().format(DATE_FORMAT);
+}
+
+export function nextDay(date: string): string {
+  return moment(date).add(1, 'day').format(DATE_FORMAT)
+}
+
+export function prevDay(date: string): string {
+  return moment(date).subtract(1, 'day').format(DATE_FORMAT)
+}
+
 export function objectFromForm<R>(form: HTMLFormElement): R {
   const data = new FormData(form);
   const body: any = {};

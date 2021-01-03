@@ -104,6 +104,7 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
 }
 
 async fn get_chores(req: Request<State>) -> tide::Result {
+    // XXX restrict to 7 days in future unless feature flag
     let query: ChoresRequest = req.query()?;
 
     add_next_chore_instances_before_date(&req.state().db, &query.date).await?;
@@ -145,11 +146,9 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     let mut conn = (&req.state().db).acquire().await?;
 
     sqlx::query!("BEGIN").execute(&mut conn).await?;
-    let mut chore = sqlx::query_as!(
-        Chore,
-        "SELECT * FROM chore where id = ?",
-        id
-    ).fetch_one(&mut conn).await?;
+    let mut chore = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
+        .fetch_one(&mut conn)
+        .await?;
     chore.apply_update(update);
     sqlx::query!(
         "
@@ -166,7 +165,9 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
         chore.date,
         chore.complete,
         chore.id,
-    ).execute(&mut conn).await?;
+    )
+    .execute(&mut conn)
+    .await?;
     sqlx::query!("COMMIT").execute(&mut conn).await?;
 
     Ok(json!({ "chore": chore }).into())

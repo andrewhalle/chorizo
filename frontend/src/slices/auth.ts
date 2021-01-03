@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api, { PostLoginBody } from '../api';
-import type { RootState } from '../store';
+import type { AppState } from '../store';
 
 interface UninitializedAuthState {
   type: 'UNINITIALIZED';
@@ -21,7 +21,7 @@ const initializedState = (loggedIn: boolean, username: string | null) => ({
 
 type AuthState = UninitializedAuthState | InitializedAuthState;
 
-export const getUsername = (state: RootState) => {
+export const getUsername = (state: AppState) => {
   switch (state.auth.type) {
     case 'UNINITIALIZED':
       return null;
@@ -53,11 +53,7 @@ export const authLogin = createAsyncThunk(
 export const authSlice = createSlice({
   name: 'auth',
   initialState: { type: 'UNINITIALIZED' } as AuthState,
-  reducers: {
-    login: (state, action: PayloadAction<{username: string}>) => {
-      return { type: 'INITIALIZED', loggedIn: true, username: action.payload.username };
-    }
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder.addCase(authInitialize.fulfilled, (state, action) => {
       return { type: 'INITIALIZED', ...action.payload };
@@ -67,7 +63,5 @@ export const authSlice = createSlice({
     });
   }
 });
-
-export const { login } = authSlice.actions;
 
 export default authSlice.reducer;
