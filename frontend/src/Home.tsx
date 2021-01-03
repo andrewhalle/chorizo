@@ -14,6 +14,8 @@ import {
   chorePrevDay
 } from './slices/chore';
 
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+
 export const Home: FunctionComponent = () => {
   const dispatch = useAppDispatch();
 
@@ -33,15 +35,37 @@ export const Home: FunctionComponent = () => {
       <Button onClick={() => dispatch(choreNextDay())}>Next day</Button>
       <p>Chores for {date}</p>
       <Row>
+        <DragDropContext onDragEnd={() => {}}>
         { Object.entries(byAssignee).map(([assignee, chores]) => (
-          <Col className="chore-column w-25">
-            {
-              chores.map((c) =>
-                <Chore className="mt-2" chore={c} />
-              )
-            }
-          </Col>
+            <div>
+              <h3>{assignee}</h3>
+              <hr />
+              <Droppable droppableId={assignee.toString()}>
+                {(provided) => (
+                  <ul {...provided.droppableProps} ref={provided.innerRef}>
+                  {
+                    chores.map((c, index) => (
+                      <Draggable
+                          key={c.id.toString()}
+                          draggableId={c.id.toString()}
+                          index={index}>
+                        {(provided) => (
+                          <li
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}>
+                            {c.title}
+                          </li>
+                        )}
+                      </Draggable>
+                    ))
+                  }
+                  </ul>
+                )}
+              </Droppable>
+            </div>
         )) }
+        </DragDropContext>
       </Row>
     </div>
   );
