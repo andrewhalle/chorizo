@@ -25,6 +25,7 @@ export interface Chore {
   title: string;
   complete: boolean;
   date: number;
+  sort_order: number;
 };
 
 // -- end types

@@ -27,6 +27,7 @@ struct Chore {
     instance_of: Option<i64>,
     date: String,
     complete: bool,
+    sort_order: i64,
 }
 
 #[derive(Deserialize)]
@@ -40,6 +41,7 @@ struct CreateChore {
 struct UpdateChore {
     assignee: Option<i64>,
     complete: Option<bool>,
+    sort_order: Option<i64>,
 }
 
 impl Chore {
@@ -49,6 +51,9 @@ impl Chore {
         }
         if update.complete.is_some() {
             self.complete = update.complete.unwrap();
+        }
+        if update.sort_order.is_some() {
+            self.sort_order = update.sort_order.unwrap();
         }
     }
 }
@@ -74,14 +79,34 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
         while next_instance_date <= requested {
             let formatted = next_instance_date.format("%Y-%m-%d");
 
+            // XXX don't duplicate
+            let next_sort_order = sqlx::query!(
+                "
+                SELECT
+                  sort_order
+                FROM
+                  chore
+                WHERE
+                  date = ?
+                ORDER BY
+                  sort_order DESC
+                LIMIT 1
+                ",
+                formatted
+            )
+            .fetch_optional(&mut conn)
+            .await?
+            .map(|x| x.sort_order + 1)
+            .unwrap_or(0);
             sqlx::query!(
                 "INSERT INTO
-                   chore (title, assignee, instance_of, date)
-                 VALUES (?, ?, ?, ?)",
+                   chore (title, assignee, instance_of, date, sort_order)
+                 VALUES (?, ?, ?, ?, ?)",
                 recurring_chore.title,
                 None::<i64>,
                 recurring_chore.id,
                 formatted,
+                next_sort_order,
             )
             .execute(&mut conn)
             .await?;
@@ -119,15 +144,37 @@ async fn get_chores(req: Request<State>) -> tide::Result {
 
 async fn create_chore(mut req: Request<State>) -> tide::Result {
     let chore_creation: CreateChore = req.body_json().await?;
+    let next_instance_date = Date::parse(&chore_creation.date, "%F")?;
+    let formatted = next_instance_date.format("%Y-%m-%d");
 
     let mut conn = (&req.state().db).acquire().await?;
 
     sqlx::query!("BEGIN").execute(&mut conn).await?;
+    // XXX don't duplicate
+    let next_sort_order = sqlx::query!(
+        "
+        SELECT
+          sort_order
+        FROM
+          chore
+        WHERE
+          date = ?
+        ORDER BY
+          sort_order DESC
+        LIMIT 1
+        ",
+        formatted
+    )
+    .fetch_optional(&mut conn)
+    .await?
+    .map(|x| x.sort_order + 1)
+    .unwrap_or(0);
     sqlx::query!(
-        "INSERT INTO chore (title, assignee, date) VALUES (?, ?, ?)",
+        "INSERT INTO chore (title, assignee, date, sort_order) VALUES (?, ?, ?, ?)",
         chore_creation.title,
         chore_creation.assignee,
         chore_creation.date,
+        next_sort_order,
     )
     .execute(&mut conn)
     .await?;
@@ -155,7 +202,8 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
         UPDATE
             chore
         SET
-            title = ?, assignee = ?, instance_of = ?, date = ?, complete = ?
+            title = ?, assignee = ?, instance_of = ?, date = ?,
+            complete = ?, sort_order = ?
         WHERE
             id = ?
         ",
@@ -164,6 +212,7 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
         chore.instance_of,
         chore.date,
         chore.complete,
+        chore.sort_order,
         chore.id,
     )
     .execute(&mut conn)

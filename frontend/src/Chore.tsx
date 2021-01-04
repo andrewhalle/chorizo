@@ -4,7 +4,7 @@ import { Chore as IChore } from './api';
 
 interface ChoreProps {
   chore: IChore;
-  className: string;
+  className?: string;
 }
 
 const Chore: FunctionComponent<ChoreProps> = (props: ChoreProps) => {

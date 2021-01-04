@@ -1,8 +1,9 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api, { Chore, GetChoreResponse } from '../api';
 import type { AppState } from '../store';
 import _ from 'lodash';
 import { date, nextDay, prevDay } from '../utils';
+import type { DropResult } from 'react-beautiful-dnd';
 
 interface ChoreState {
   date: string;
@@ -65,6 +66,20 @@ const chorePrevDayThunk = createAsyncThunk<
 );
 export const chorePrevDay = () => chorePrevDayThunk({});
 
+// check that the destination on dropResult is defined before calling
+export const choreReorderAndAssign = createAsyncThunk(
+  'chore/reorderAndAssign',
+  async (dropResult: DropResult) => {
+    // XXX reorder if source and destination index differ
+    // need to think about reordering more
+    await api.patchChore(
+      Number(dropResult.draggableId),
+      { assignee: Number(dropResult.destination!.droppableId) }
+    );
+    return dropResult;
+  }
+);
+
 export const choreSlice = createSlice({
   name: 'chore',
   initialState: { date: date(), chores: [] } as ChoreState,
@@ -72,14 +87,14 @@ export const choreSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(
       choreRefreshThunk.fulfilled,
-      (state, action: PayloadAction<GetChoreResponse>) => {
+      (state, action) => {
         state.chores = action.payload.chores;
         return state;
       }
     );
     builder.addCase(
       choreNextDayThunk.fulfilled,
-      (state, action: PayloadAction<GetChoreResponse & { date: string }>) => {
+      (state, action) => {
         state.date = action.payload.date;
         state.chores = action.payload.chores;
         return state;
@@ -87,9 +102,18 @@ export const choreSlice = createSlice({
     );
     builder.addCase(
       chorePrevDayThunk.fulfilled,
-      (state, action: PayloadAction<GetChoreResponse & { date: string }>) => {
+      (state, action) => {
         state.date = action.payload.date;
         state.chores = action.payload.chores;
+        return state;
+      }
+    );
+    builder.addCase(
+      choreReorderAndAssign.fulfilled,
+      (state, action) => {
+        const chore = state.chores.find((c) =>
+          c.id === Number(action.payload.draggableId))!;
+        chore.assignee = Number(action.payload.destination!.droppableId);
         return state;
       }
     );

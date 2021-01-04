@@ -10,11 +10,17 @@ import {
   getDate,
   getChoresByAssignee,
   choreRefresh,
+  choreReorderAndAssign,
   choreNextDay,
   chorePrevDay
 } from './slices/chore';
 
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult
+} from 'react-beautiful-dnd';
 
 export const Home: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -28,6 +34,10 @@ export const Home: FunctionComponent = () => {
     dispatch(choreRefresh());
   }, [dispatch]);
 
+  const handleDragEnd = (dropResult: DropResult) => {
+    dispatch(choreReorderAndAssign(dropResult));
+  };
+
   return (
     <div>
       <p>Hello, {username || 'unknown user'}!</p>
@@ -35,7 +45,7 @@ export const Home: FunctionComponent = () => {
       <Button onClick={() => dispatch(choreNextDay())}>Next day</Button>
       <p>Chores for {date}</p>
       <Row>
-        <DragDropContext onDragEnd={() => {}}>
+        <DragDropContext onDragEnd={handleDragEnd}>
         { Object.entries(byAssignee).map(([assignee, chores]) => (
             <div>
               <h3>{assignee}</h3>
@@ -50,12 +60,12 @@ export const Home: FunctionComponent = () => {
                           draggableId={c.id.toString()}
                           index={index}>
                         {(provided) => (
-                          <li
+                          <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}>
-                            {c.title}
-                          </li>
+                            <Chore chore={c} />
+                          </div>
                         )}
                       </Draggable>
                     ))
