@@ -15,6 +15,8 @@ import { fetchAndCheckStatus } from './utils';
  *   - PATCH /api/chore/:id
  *     - request: Partial<Omit<Chore, 'id' | 'title' | 'date'>>
  *     - response: { chore: Chore }
+ *   - GET /api/user
+ *     - response { user: User[] }
  */
 
 // -- begin types
@@ -27,6 +29,11 @@ export interface Chore {
   date: number;
   sort_order: number;
 };
+
+export interface User {
+  id: number;
+  username: string;
+}
 
 // -- end types
 
@@ -104,11 +111,23 @@ async function patchChore(id: number, body: PatchChoreBody): Promise<PatchChoreR
 
 // -- end POST /api/chore
 
+// -- begin GET /api/user
+export interface GetUserResponse {
+  users: User[];
+}
+
+async function getUser(): Promise<GetUserResponse> {
+  return fetchAndCheckStatus('GET', '/api/user', null, null);
+}
+
+// -- begin GET /api/user
+
 const api = {
   getAuth,
   postLogin,
   getChore,
   postChore,
-  patchChore
+  patchChore,
+  getUser
 };
 export default api;

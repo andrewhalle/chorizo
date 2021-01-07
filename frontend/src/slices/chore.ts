@@ -12,7 +12,7 @@ interface ChoreState {
 
 export const getChoresByAssignee = (state: AppState) => _.groupBy(
   state.chore.chores,
-  (c) => c.assignee
+  (c) => c.assignee === null ? -1 : c.assignee
 );
 
 export const getDate = (state: AppState) => state.chore.date;
@@ -72,9 +72,10 @@ export const choreReorderAndAssign = createAsyncThunk(
   async (dropResult: DropResult) => {
     // XXX reorder if source and destination index differ
     // need to think about reordering more
+    const assignee = Number(dropResult.destination!.droppableId);
     await api.patchChore(
       Number(dropResult.draggableId),
-      { assignee: Number(dropResult.destination!.droppableId) }
+      assignee === -1 ? {} : { assignee: Number(assignee) }
     );
     return dropResult;
   }

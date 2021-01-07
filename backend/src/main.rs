@@ -4,9 +4,11 @@ use tide::{Response, StatusCode};
 
 mod auth;
 mod chore;
+mod user;
 
 use auth::auth_api;
 use chore::chore_api;
+use user::user_api;
 
 #[derive(Clone)]
 struct State {
@@ -50,6 +52,9 @@ async fn main() -> tide::Result<()> {
 
     let chore_state = app.state().clone();
     app.at("/api/chore").nest(chore_api(chore_state));
+
+    let user_state = app.state().clone();
+    app.at("/api/user").nest(user_api(user_state));
 
     app.listen(format!(
         "127.0.0.1:{}",

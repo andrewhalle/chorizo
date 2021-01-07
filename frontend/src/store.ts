@@ -4,11 +4,13 @@ import { useDispatch } from 'react-redux';
 
 import authReducer from './slices/auth';
 import choreReducer from './slices/chore';
+import userReducer from './slices/user';
 
 const store = configureStore({
   reducer: {
     auth: authReducer,
-    chore: choreReducer
+    chore: choreReducer,
+    user: userReducer
   }
 });
 

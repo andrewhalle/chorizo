@@ -14,6 +14,7 @@ import {
   choreNextDay,
   chorePrevDay
 } from './slices/chore';
+import { userRefresh, getUsers } from './slices/user';
 
 import {
   DragDropContext,
@@ -26,12 +27,14 @@ export const Home: FunctionComponent = () => {
   const dispatch = useAppDispatch();
 
   const byAssignee = useSelector(getChoresByAssignee);
+  const users = useSelector(getUsers);
   const username = useSelector(getUsername);
   const date = useSelector(getDate);
 
   React.useEffect(() => {
     dispatch(authInitialize());
     dispatch(choreRefresh());
+    dispatch(userRefresh());
   }, [dispatch]);
 
   const handleDragEnd = (dropResult: DropResult) => {
@@ -46,15 +49,15 @@ export const Home: FunctionComponent = () => {
       <p>Chores for {date}</p>
       <Row>
         <DragDropContext onDragEnd={handleDragEnd}>
-        { Object.entries(byAssignee).map(([assignee, chores]) => (
-            <div>
-              <h3>{assignee}</h3>
+        { users.concat([{ username: 'Unassigned', id: -1 }]).map((user) => (
+            <div className="chore-column">
+              <h3>{user.username}</h3>
               <hr />
-              <Droppable droppableId={assignee.toString()}>
+              <Droppable droppableId={user.id.toString()}>
                 {(provided) => (
                   <ul {...provided.droppableProps} ref={provided.innerRef}>
                   {
-                    chores.map((c, index) => (
+                    (byAssignee[user.id] || []).map((c, index) => (
                       <Draggable
                           key={c.id.toString()}
                           draggableId={c.id.toString()}
