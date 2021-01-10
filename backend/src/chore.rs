@@ -197,11 +197,9 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     let mut conn = (&req.state().db).acquire().await?;
     let mut transaction = conn.begin().await?;
 
-    tide::log::info!("place 1");
     let mut chore = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
         .fetch_one(&mut transaction)
         .await?;
-    tide::log::info!("place 2");
     chore.apply_update(update);
     sqlx::query!(
         "
@@ -223,10 +221,8 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     )
     .execute(&mut transaction)
     .await?;
-    tide::log::info!("place 3");
 
     transaction.commit().await?;
-    tide::log::info!("place 4");
 
     Ok(json!({ "chore": chore }).into())
 }

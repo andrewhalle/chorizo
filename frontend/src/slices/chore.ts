@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api, { Chore, GetChoreResponse, PostChoreBody } from '../api';
+import api, { Chore, GetChoreResponse, PostChoreBody, PatchChoreBody } from '../api';
 import type { AppState } from '../store';
 import _ from 'lodash';
 import { date, nextDay, prevDay } from '../utils';
@@ -95,6 +95,18 @@ export const choreCreate = createAsyncThunk(
   }
 );
 
+interface ChoreSetCompleteParams {
+  id: number;
+  body: PatchChoreBody;
+}
+
+export const choreSetComplete = createAsyncThunk(
+  'chore/setComplete',
+  async (params: ChoreSetCompleteParams) => {
+    return api.patchChore(params.id, params.body);
+  }
+);
+
 export const choreSlice = createSlice({
   name: 'chore',
   initialState: { date: date(), chores: [] } as ChoreState,
@@ -139,6 +151,14 @@ export const choreSlice = createSlice({
           state.chores.push(action.payload);
         }
 
+        return state;
+      }
+    );
+    builder.addCase(
+      choreSetComplete.fulfilled,
+      (state, action) => {
+        const chore = state.chores.find((c) => c.id === action.payload.chore.id)!;
+        chore.complete = !chore.complete;
         return state;
       }
     );

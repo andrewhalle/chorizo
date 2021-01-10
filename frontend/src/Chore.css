@@ -1,0 +1,13 @@
+.chore {
+  border: 1px solid black;
+  padding: 20px;
+  margin: 20px;
+}
+
+.incomplete {
+  background-color: #ffffff;
+}
+
+.complete {
+  background-color: #afde97;
+}
