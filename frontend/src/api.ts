@@ -17,6 +17,9 @@ import { fetchAndCheckStatus } from './utils';
  *     - response: { chore: Chore }
  *   - GET /api/user
  *     - response { user: User[] }
+ *   - POST /api/chore/recurring
+ *     - body { title: string, next_instance_date: string, repeat_every_days: number }
+ *     - response {}
  */
 
 // -- begin types
@@ -122,12 +125,26 @@ async function getUser(): Promise<GetUserResponse> {
 
 // -- begin GET /api/user
 
+// -- begin POST /api/chore/recurring
+export interface PostRecurringChoreBody {
+  title: string;
+  next_instance_date: string;
+  repeat_every_days: number;
+}
+
+async function postRecurringChore(body: PostRecurringChoreBody): Promise<{}> {
+  return fetchAndCheckStatus('POST', '/api/chore/recurring', null, body);
+}
+
+// -- end POST /api/chore/recurring
+
 const api = {
   getAuth,
   postLogin,
   getChore,
   postChore,
   patchChore,
-  getUser
+  getUser,
+  postRecurringChore
 };
 export default api;

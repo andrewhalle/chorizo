@@ -19,6 +19,13 @@ struct RecurringChore {
     next_instance_date: String,
 }
 
+#[derive(Deserialize)]
+struct CreateRecurringChore {
+    title: String,
+    repeat_every_days: i64,
+    next_instance_date: String,
+}
+
 #[derive(Serialize, Debug, sqlx::FromRow)]
 struct Chore {
     id: i64,
@@ -227,12 +234,31 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     Ok(json!({ "chore": chore }).into())
 }
 
+async fn create_recurring_chore(mut req: Request<State>) -> tide::Result {
+    let to_create: CreateRecurringChore = req.body_json().await?;
+
+    let mut conn = (&req.state().db).acquire().await?;
+    let mut transaction = conn.begin().await?;
+
+    sqlx::query!(
+        "insert into recurring_chore (title, repeat_every_days, next_instance_date) values (?, ?, ?)",
+        to_create.title,
+        to_create.repeat_every_days,
+        to_create.next_instance_date,
+    ).execute(&mut transaction).await?;
+
+    transaction.commit().await?;
+
+    Ok("{}".into())
+}
+
 pub(super) fn chore_api(state: State) -> tide::Server<State> {
     let mut api = tide::with_state(state);
     api.with(auth_middleware);
     api.at("/").get(get_chores);
     api.at("/").post(create_chore);
     api.at("/:id").patch(edit_chore);
+    api.at("/recurring").post(create_recurring_chore);
 
     api
 }

@@ -49,6 +49,7 @@ export const Home: FunctionComponent = () => {
       <Button onClick={() => dispatch(chorePrevDay())}>Prev day</Button>
       <Button onClick={() => dispatch(choreNextDay())}>Next day</Button>
       <Button onClick={() => history.push('/add-chore')}>Add chore</Button>
+      <Button onClick={() => history.push('/add-recurring-chore')}>Add recurring chore</Button>
       <p>Chores for {date}</p>
       <Row>
         <DragDropContext onDragEnd={handleDragEnd}>

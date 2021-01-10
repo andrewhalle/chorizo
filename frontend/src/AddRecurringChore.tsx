@@ -1,12 +1,12 @@
 import React, { FormEvent, FunctionComponent } from 'react';
 import { Form, FormGroup, Label, Input, Button } from 'reactstrap';
 import { useAppDispatch } from './store';
-import { choreCreate } from './slices/chore';
-import { PostChoreBody } from './api';
+import { recurringChoreCreate } from './slices/chore';
+import { PostRecurringChoreBody } from './api';
 import { objectFromForm } from './utils';
 import { useHistory } from 'react-router';
 
-export const AddChore: FunctionComponent = () => {
+export const AddRecurringChore: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const history = useHistory();
 
@@ -14,26 +14,28 @@ export const AddChore: FunctionComponent = () => {
     e.preventDefault()
 
     const data: any = objectFromForm(e.target as HTMLFormElement);
-    data.assignee = null;
-    data.complete = false;
-    data.sort_order = 1;
-    const chore: PostChoreBody = data;
+    data.repeat_every_days = Number(data.repeat_every_days);
+    const recurringChore: PostRecurringChoreBody = data;
 
-    const params = { chore, after: () => history.push('/') };
-    dispatch(choreCreate(params));
+    const params = { recurringChore, after: () => history.push('/') };
+    dispatch(recurringChoreCreate(params));
   };
 
   return (
     <div>
-      <h3>Add chore</h3>
+      <h3>Add recurring chore</h3>
       <Form onSubmit={onSubmit}>
         <FormGroup>
           <Label for="title">Title</Label>
           <Input type="text" name="title" id="title" />
         </FormGroup>
         <FormGroup>
-          <Label for="date">Date</Label>
-          <Input type="text" name="date" id="date" />
+          <Label for="next_instance_date">Next instance date</Label>
+          <Input type="text" name="next_instance_date" id="next_instance_date" />
+        </FormGroup>
+        <FormGroup>
+          <Label for="repeat_every_days">Repeat every days</Label>
+          <Input type="text" name="repeat_every_days" id="repeat_every_days" />
         </FormGroup>
         <Button>Create</Button>
       </Form>

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { Login } from './Login';
 import { Home } from './Home';
 import { AddChore } from './AddChore';
+import { AddRecurringChore } from './AddRecurringChore';
 import { ErrorPage } from './ErrorPage';
 
 import { Provider } from 'react-redux';
@@ -21,6 +22,9 @@ function App() {
             </Route>
             <Route path="/add-chore">
               <AddChore />
+            </Route>
+            <Route path="/add-recurring-chore">
+              <AddRecurringChore />
             </Route>
             <Route path="/" exact>
               <Home />

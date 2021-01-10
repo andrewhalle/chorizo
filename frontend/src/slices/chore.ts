@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api, { Chore, GetChoreResponse, PostChoreBody, PatchChoreBody } from '../api';
+import api, {
+  Chore,
+  GetChoreResponse,
+  PostChoreBody,
+  PatchChoreBody,
+  PostRecurringChoreBody
+} from '../api';
 import type { AppState } from '../store';
 import _ from 'lodash';
 import { date, nextDay, prevDay } from '../utils';
@@ -107,6 +113,19 @@ export const choreSetComplete = createAsyncThunk(
   }
 );
 
+interface RecurringChoreCreateParams {
+  recurringChore: PostRecurringChoreBody;
+  after: () => void;
+}
+
+export const recurringChoreCreate = createAsyncThunk(
+  'chore/recurringChoreCreate',
+  async (params: RecurringChoreCreateParams) => {
+    await api.postRecurringChore(params.recurringChore);
+    params.after();
+  }
+);
+
 export const choreSlice = createSlice({
   name: 'chore',
   initialState: { date: date(), chores: [] } as ChoreState,
@@ -159,6 +178,12 @@ export const choreSlice = createSlice({
       (state, action) => {
         const chore = state.chores.find((c) => c.id === action.payload.chore.id)!;
         chore.complete = !chore.complete;
+        return state;
+      }
+    );
+    builder.addCase(
+      recurringChoreCreate.fulfilled,
+      (state, action) => {
         return state;
       }
     );
