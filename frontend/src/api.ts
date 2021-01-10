@@ -26,7 +26,7 @@ export interface Chore {
   assignee: number | null;
   title: string;
   complete: boolean;
-  date: number;
+  date: string;
   sort_order: number;
 };
 

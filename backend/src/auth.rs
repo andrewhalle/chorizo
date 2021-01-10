@@ -39,7 +39,8 @@ async fn get_session(req: Request<State>) -> tide::Result {
     Ok(json!({
         "loggedIn": session.get("logged_in").unwrap_or(false),
         "username": session.get::<String>("username")
-    }).into())
+    })
+    .into())
 }
 
 async fn login(mut req: Request<State>) -> tide::Result {

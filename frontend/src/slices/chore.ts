@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api, { Chore, GetChoreResponse } from '../api';
+import api, { Chore, GetChoreResponse, PostChoreBody } from '../api';
 import type { AppState } from '../store';
 import _ from 'lodash';
 import { date, nextDay, prevDay } from '../utils';
@@ -81,6 +81,20 @@ export const choreReorderAndAssign = createAsyncThunk(
   }
 );
 
+interface ChoreCreateParams {
+  chore: PostChoreBody;
+  after: () => void;
+}
+
+export const choreCreate = createAsyncThunk(
+  'chore/create',
+  async (params: ChoreCreateParams) => {
+    const { new_chore } = await api.postChore(params.chore);
+    params.after();
+    return new_chore;
+  }
+);
+
 export const choreSlice = createSlice({
   name: 'chore',
   initialState: { date: date(), chores: [] } as ChoreState,
@@ -115,6 +129,16 @@ export const choreSlice = createSlice({
         const chore = state.chores.find((c) =>
           c.id === Number(action.payload.draggableId))!;
         chore.assignee = Number(action.payload.destination!.droppableId);
+        return state;
+      }
+    );
+    builder.addCase(
+      choreCreate.fulfilled,
+      (state, action) => {
+        if (state.date === action.payload.date) {
+          state.chores.push(action.payload);
+        }
+
         return state;
       }
     );

@@ -1,4 +1,5 @@
 import React, { FunctionComponent } from 'react';
+import { useHistory } from 'react-router';
 import Chore from './Chore';
 import { Row, Col, Button } from 'reactstrap';
 import './Home.css';
@@ -24,6 +25,7 @@ import {
 } from 'react-beautiful-dnd';
 
 export const Home: FunctionComponent = () => {
+  const history = useHistory();
   const dispatch = useAppDispatch();
 
   const byAssignee = useSelector(getChoresByAssignee);
@@ -46,6 +48,7 @@ export const Home: FunctionComponent = () => {
       <p>Hello, {username || 'unknown user'}!</p>
       <Button onClick={() => dispatch(chorePrevDay())}>Prev day</Button>
       <Button onClick={() => dispatch(choreNextDay())}>Next day</Button>
+      <Button onClick={() => history.push('/add-chore')}>Add chore</Button>
       <p>Chores for {date}</p>
       <Row>
         <DragDropContext onDragEnd={handleDragEnd}>

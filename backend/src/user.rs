@@ -1,6 +1,7 @@
 use super::auth::auth_middleware;
 use super::State;
 use serde::Serialize;
+use sqlx::Acquire;
 use tide::prelude::*;
 use tide::Request;
 
@@ -21,10 +22,13 @@ struct SafeUser {
 
 async fn get_users(req: Request<State>) -> tide::Result {
     let mut conn = (&req.state().db).acquire().await?;
+    let mut transaction = conn.begin().await?;
 
     let users = sqlx::query_as!(SafeUser, "SELECT id, username FROM user")
-        .fetch_all(&mut conn)
+        .fetch_all(&mut transaction)
         .await?;
+
+    transaction.commit().await?;
 
     Ok(json!({ "users": users }).into())
 }

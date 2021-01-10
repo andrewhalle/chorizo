@@ -1,7 +1,7 @@
 use super::auth::auth_middleware;
 use super::State;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::{Acquire, Sqlite, Transaction};
 use tide::prelude::*;
 use tide::Request;
 use time::{Date, Duration};
@@ -39,7 +39,7 @@ struct CreateChore {
 
 #[derive(Deserialize)]
 struct UpdateChore {
-    assignee: Option<i64>,
+    assignee: Option<Option<i64>>,
     complete: Option<bool>,
     sort_order: Option<i64>,
 }
@@ -47,7 +47,7 @@ struct UpdateChore {
 impl Chore {
     fn apply_update(&mut self, update: UpdateChore) {
         if update.assignee.is_some() {
-            self.assignee = update.assignee;
+            self.assignee = update.assignee.unwrap();
         }
         if update.complete.is_some() {
             self.complete = update.complete.unwrap();
@@ -61,15 +61,16 @@ impl Chore {
 /// For all recurring chores in the database with a next_instance_date on or before
 /// `date`, add a chore instance and move the next_instance_date according to
 /// recurring_chore.repeat_every_days
-async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> anyhow::Result<()> {
-    let mut conn = pool.acquire().await?;
-    sqlx::query!("BEGIN").execute(&mut conn).await?;
+async fn add_next_chore_instances_before_date(
+    transaction: &mut Transaction<'_, Sqlite>,
+    date: &str,
+) -> anyhow::Result<()> {
     let recurring_chores = sqlx::query_as!(
         RecurringChore,
         "SELECT * FROM recurring_chore WHERE next_instance_date <= ?",
         date
     )
-    .fetch_all(&mut conn)
+    .fetch_all(&mut *transaction)
     .await?;
 
     for recurring_chore in recurring_chores {
@@ -94,7 +95,7 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
                 ",
                 formatted
             )
-            .fetch_optional(&mut conn)
+            .fetch_optional(&mut *transaction)
             .await?
             .map(|x| x.sort_order + 1)
             .unwrap_or(0);
@@ -108,7 +109,7 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
                 formatted,
                 next_sort_order,
             )
-            .execute(&mut conn)
+            .execute(&mut *transaction)
             .await?;
 
             next_instance_date += Duration::days(recurring_chore.repeat_every_days);
@@ -118,12 +119,10 @@ async fn add_next_chore_instances_before_date(pool: &SqlitePool, date: &str) -> 
                 formatted,
                 recurring_chore.id,
             )
-            .execute(&mut conn)
+            .execute(&mut *transaction)
             .await?;
         }
     }
-
-    sqlx::query!("COMMIT").execute(&mut conn).await?;
 
     Ok(())
 }
@@ -132,12 +131,16 @@ async fn get_chores(req: Request<State>) -> tide::Result {
     // XXX restrict to 7 days in future unless feature flag
     let query: ChoresRequest = req.query()?;
 
-    add_next_chore_instances_before_date(&req.state().db, &query.date).await?;
-
     let mut conn = (&req.state().db).acquire().await?;
+    let mut transaction = conn.begin().await?;
+
+    add_next_chore_instances_before_date(&mut transaction, &query.date).await?;
+
     let chores = sqlx::query_as!(Chore, "SELECT * FROM chore WHERE date = ?", query.date,)
-        .fetch_all(&mut conn)
+        .fetch_all(&mut transaction)
         .await?;
+
+    transaction.commit().await?;
 
     Ok(json!({ "chores": chores }).into())
 }
@@ -148,8 +151,8 @@ async fn create_chore(mut req: Request<State>) -> tide::Result {
     let formatted = next_instance_date.format("%Y-%m-%d");
 
     let mut conn = (&req.state().db).acquire().await?;
+    let mut transaction = conn.begin().await?;
 
-    sqlx::query!("BEGIN").execute(&mut conn).await?;
     // XXX don't duplicate
     let next_sort_order = sqlx::query!(
         "
@@ -165,7 +168,7 @@ async fn create_chore(mut req: Request<State>) -> tide::Result {
         ",
         formatted
     )
-    .fetch_optional(&mut conn)
+    .fetch_optional(&mut transaction)
     .await?
     .map(|x| x.sort_order + 1)
     .unwrap_or(0);
@@ -176,12 +179,13 @@ async fn create_chore(mut req: Request<State>) -> tide::Result {
         chore_creation.date,
         next_sort_order,
     )
-    .execute(&mut conn)
+    .execute(&mut transaction)
     .await?;
     let chore = sqlx::query_as!(Chore, "SELECT * from chore where id = last_insert_rowid()",)
-        .fetch_one(&mut conn)
+        .fetch_one(&mut transaction)
         .await?;
-    sqlx::query!("COMMIT").execute(&mut conn).await?;
+
+    transaction.commit().await?;
 
     Ok(json!({ "new_chore": chore }).into())
 }
@@ -191,11 +195,13 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     let update: UpdateChore = req.body_json().await?;
 
     let mut conn = (&req.state().db).acquire().await?;
+    let mut transaction = conn.begin().await?;
 
-    sqlx::query!("BEGIN").execute(&mut conn).await?;
+    tide::log::info!("place 1");
     let mut chore = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
-        .fetch_one(&mut conn)
+        .fetch_one(&mut transaction)
         .await?;
+    tide::log::info!("place 2");
     chore.apply_update(update);
     sqlx::query!(
         "
@@ -215,9 +221,12 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
         chore.sort_order,
         chore.id,
     )
-    .execute(&mut conn)
+    .execute(&mut transaction)
     .await?;
-    sqlx::query!("COMMIT").execute(&mut conn).await?;
+    tide::log::info!("place 3");
+
+    transaction.commit().await?;
+    tide::log::info!("place 4");
 
     Ok(json!({ "chore": chore }).into())
 }

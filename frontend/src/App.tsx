@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 
 import { Login } from './Login';
 import { Home } from './Home';
+import { AddChore } from './AddChore';
 import { ErrorPage } from './ErrorPage';
 
 import { Provider } from 'react-redux';
@@ -18,6 +19,9 @@ function App() {
           <Switch>
             <Route path="/login">
               <Login />
+            </Route>
+            <Route path="/add-chore">
+              <AddChore />
             </Route>
             <Route path="/" exact>
               <Home />
