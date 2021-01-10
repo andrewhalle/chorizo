@@ -5,15 +5,6 @@ use sqlx::Acquire;
 use tide::prelude::*;
 use tide::Request;
 
-/* XXX uncomment when needed
-struct User {
-    id: i64,
-    username: String,
-    password_hash: Vec<u8>,
-    password_salt: Vec<u8>,
-}
-*/
-
 #[derive(Serialize, sqlx::FromRow)]
 struct SafeUser {
     id: i64,

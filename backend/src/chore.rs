@@ -241,7 +241,7 @@ async fn create_recurring_chore(mut req: Request<State>) -> tide::Result {
     let mut transaction = conn.begin().await?;
 
     sqlx::query!(
-        "insert into recurring_chore (title, repeat_every_days, next_instance_date) values (?, ?, ?)",
+        "INSERT INTO recurring_chore (title, repeat_every_days, next_instance_date) VALUES (?, ?, ?)",
         to_create.title,
         to_create.repeat_every_days,
         to_create.next_instance_date,
