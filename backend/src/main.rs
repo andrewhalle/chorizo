@@ -22,7 +22,7 @@ async fn main() -> tide::Result<()> {
 
     // db
     let pool = SqlitePoolOptions::new()
-        .max_connections(5)
+        .max_connections(1)
         .connect(&std::env::var("DATABASE_URL")?)
         .await?;
 
