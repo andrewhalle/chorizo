@@ -24,7 +24,9 @@ async fn main() -> tide::Result<()> {
     // XXX this is not returning records created in the background, possibly indicating that the
     // connection isn't being closed?
     let pool = SqlitePoolOptions::new()
-        .max_connections(1)
+        .max_connections(5)
+        // XXX look into why this is needed to make background udpates visible
+        .idle_timeout(std::time::Duration::from_millis(100))
         .connect(&std::env::var("DATABASE_URL")?)
         .await?;
 

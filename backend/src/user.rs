@@ -1,19 +1,17 @@
 use super::auth::auth_middleware;
 use super::State;
 use serde::Serialize;
-use sqlx::Acquire;
 use tide::prelude::*;
 use tide::Request;
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 struct SafeUser {
     id: i64,
     username: String,
 }
 
 async fn get_users(req: Request<State>) -> tide::Result {
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     let users = sqlx::query_as!(SafeUser, "SELECT id, username FROM user")
         .fetch_all(&mut transaction)

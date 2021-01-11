@@ -1,7 +1,7 @@
 use super::auth::auth_middleware;
 use super::State;
 use serde::{Deserialize, Serialize};
-use sqlx::{Acquire, Sqlite, Transaction};
+use sqlx::{Sqlite, Transaction};
 use tide::prelude::*;
 use tide::Request;
 use time::{Date, Duration};
@@ -138,8 +138,7 @@ async fn get_chores(req: Request<State>) -> tide::Result {
     // XXX restrict to 7 days in future unless feature flag
     let query: ChoresRequest = req.query()?;
 
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     add_next_chore_instances_before_date(&mut transaction, &query.date).await?;
 
@@ -157,8 +156,7 @@ async fn create_chore(mut req: Request<State>) -> tide::Result {
     let next_instance_date = Date::parse(&chore_creation.date, "%F")?;
     let formatted = next_instance_date.format("%Y-%m-%d");
 
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     // XXX don't duplicate
     let next_sort_order = sqlx::query!(
@@ -201,8 +199,7 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
     let id: i64 = req.param("id")?.parse()?;
     let update: UpdateChore = req.body_json().await?;
 
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     let mut chore = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
         .fetch_one(&mut transaction)
@@ -237,8 +234,7 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
 async fn create_recurring_chore(mut req: Request<State>) -> tide::Result {
     let to_create: CreateRecurringChore = req.body_json().await?;
 
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     sqlx::query!(
         "INSERT INTO recurring_chore (title, repeat_every_days, next_instance_date) VALUES (?, ?, ?)",

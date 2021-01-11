@@ -2,7 +2,6 @@ use super::State;
 use anyhow::anyhow;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use sqlx::Acquire;
 use std::future::Future;
 use std::pin::Pin;
 use tide::prelude::*;
@@ -60,8 +59,7 @@ async fn get_session(req: Request<State>) -> tide::Result {
 async fn login(mut req: Request<State>) -> tide::Result {
     let body: LoginRequest = req.body_json().await?;
 
-    let mut conn = (&req.state().db).acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = req.state().db.begin().await?;
 
     // XXX allow test password if compiled with demo feature flag
     /*
