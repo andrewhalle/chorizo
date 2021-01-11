@@ -21,6 +21,8 @@ async fn main() -> tide::Result<()> {
     dotenv::dotenv().expect("could not load .env file");
 
     // db
+    // XXX this is not returning records created in the background, possibly indicating that the
+    // connection isn't being closed?
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect(&std::env::var("DATABASE_URL")?)

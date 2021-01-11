@@ -24,14 +24,11 @@ struct LoginRequest {
 
 impl User {
     fn check_password(&self, password: &str) -> bool {
-        dbg!(self);
         let mut hasher = Sha256::new();
         hasher.update(password.as_bytes());
         hasher.update(&self.password_salt[..]);
 
         let result = hasher.finalize();
-
-        dbg!(&result[..]);
 
         &result[..] == &self.password_hash[..]
     }
