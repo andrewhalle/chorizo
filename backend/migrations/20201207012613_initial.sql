@@ -20,7 +20,7 @@ create table chore (
   instance_of INTEGER,
   date TEXT NOT NULL,
   complete BOOLEAN NOT NULL DEFAULT false,
-  sort_order INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY(assignee) REFERENCES user(id)
   FOREIGN KEY(instance_of) REFERENCES recurring_chore(id)
 );

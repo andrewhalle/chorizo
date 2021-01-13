@@ -67,23 +67,15 @@ async fn login(mut req: Request<State>) -> tide::Result {
         return Err(tide::Error::new(500, anyhow!("Login failed")));
     }
     */
-    let user = sqlx::query_as!(User, "SELECT * FROM user WHERE username = ?", body.username)
-        .fetch_optional(&mut transaction)
-        .await?;
-
-    let login_failed = Err(tide::Error::new(500, anyhow!("Login failed")));
-    match user {
-        None => {
-            return login_failed;
-        }
-        Some(u) => {
-            if !u.check_password(&body.password) {
-                return login_failed;
-            }
-        }
-    }
-
+    let users =
+        sqlx::query_as!(User, "SELECT * FROM user WHERE username = ?", body.username)
+            .fetch_all(&mut transaction)
+            .await?;
     transaction.commit().await?;
+
+    if users.len() != 1 || !users[0].check_password(&body.password) {
+        return Err(tide::Error::new(500, anyhow!("Login failed")));
+    }
 
     let session = req.session_mut();
     session.insert("logged_in", true)?;

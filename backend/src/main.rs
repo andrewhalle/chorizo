@@ -25,8 +25,6 @@ async fn main() -> tide::Result<()> {
     // connection isn't being closed?
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        // XXX look into why this is needed to make background udpates visible
-        .idle_timeout(std::time::Duration::from_millis(100))
         .connect(&std::env::var("DATABASE_URL")?)
         .await?;
 
@@ -62,7 +60,8 @@ async fn main() -> tide::Result<()> {
 
     app.listen(format!(
         "127.0.0.1:{}",
-        std::env::var("HTTP_PORT").expect("Please provide a port number to serve the app on.")
+        std::env::var("HTTP_PORT")
+            .expect("Please provide a port number to serve the app on.")
     ))
     .await?;
     Ok(())

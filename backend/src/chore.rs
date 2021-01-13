@@ -81,40 +81,21 @@ async fn add_next_chore_instances_before_date(
     .await?;
 
     for recurring_chore in recurring_chores {
-        let mut next_instance_date = Date::parse(&recurring_chore.next_instance_date, "%F")?;
+        let mut next_instance_date =
+            Date::parse(&recurring_chore.next_instance_date, "%F")?;
         let requested = Date::parse(date, "%F")?;
 
         while next_instance_date <= requested {
             let formatted = next_instance_date.format("%Y-%m-%d");
 
-            // XXX don't duplicate
-            let next_sort_order = sqlx::query!(
-                "
-                SELECT
-                  sort_order
-                FROM
-                  chore
-                WHERE
-                  date = ?
-                ORDER BY
-                  sort_order DESC
-                LIMIT 1
-                ",
-                formatted
-            )
-            .fetch_optional(&mut *transaction)
-            .await?
-            .map(|x| x.sort_order + 1)
-            .unwrap_or(0);
             sqlx::query!(
                 "INSERT INTO
-                   chore (title, assignee, instance_of, date, sort_order)
-                 VALUES (?, ?, ?, ?, ?)",
+                   chore (title, assignee, instance_of, date)
+                 VALUES (?, ?, ?, ?)",
                 recurring_chore.title,
                 None::<i64>,
                 recurring_chore.id,
-                formatted,
-                next_sort_order,
+                formatted
             )
             .execute(&mut *transaction)
             .await?;
@@ -142,9 +123,10 @@ async fn get_chores(req: Request<State>) -> tide::Result {
 
     add_next_chore_instances_before_date(&mut transaction, &query.date).await?;
 
-    let chores = sqlx::query_as!(Chore, "SELECT * FROM chore WHERE date = ?", query.date,)
-        .fetch_all(&mut transaction)
-        .await?;
+    let chores =
+        sqlx::query_as!(Chore, "SELECT * FROM chore WHERE date = ?", query.date,)
+            .fetch_all(&mut transaction)
+            .await?;
 
     transaction.commit().await?;
 
@@ -153,46 +135,25 @@ async fn get_chores(req: Request<State>) -> tide::Result {
 
 async fn create_chore(mut req: Request<State>) -> tide::Result {
     let chore_creation: CreateChore = req.body_json().await?;
-    let next_instance_date = Date::parse(&chore_creation.date, "%F")?;
-    let formatted = next_instance_date.format("%Y-%m-%d");
 
     let mut transaction = req.state().db.begin().await?;
 
-    // XXX don't duplicate
-    let next_sort_order = sqlx::query!(
-        "
-        SELECT
-          sort_order
-        FROM
-          chore
-        WHERE
-          date = ?
-        ORDER BY
-          sort_order DESC
-        LIMIT 1
-        ",
-        formatted
-    )
-    .fetch_optional(&mut transaction)
-    .await?
-    .map(|x| x.sort_order + 1)
-    .unwrap_or(0);
     sqlx::query!(
-        "INSERT INTO chore (title, assignee, date, sort_order) VALUES (?, ?, ?, ?)",
+        "INSERT INTO chore (title, assignee, date) VALUES (?, ?, ?)",
         chore_creation.title,
         chore_creation.assignee,
         chore_creation.date,
-        next_sort_order,
     )
     .execute(&mut transaction)
     .await?;
-    let chore = sqlx::query_as!(Chore, "SELECT * from chore where id = last_insert_rowid()",)
-        .fetch_one(&mut transaction)
-        .await?;
+    let chores =
+        sqlx::query_as!(Chore, "SELECT * from chore where id = last_insert_rowid()",)
+            .fetch_all(&mut transaction)
+            .await?;
 
     transaction.commit().await?;
 
-    Ok(json!({ "new_chore": chore }).into())
+    Ok(json!({ "new_chore": chores[0] }).into())
 }
 
 async fn edit_chore(mut req: Request<State>) -> tide::Result {
@@ -201,9 +162,10 @@ async fn edit_chore(mut req: Request<State>) -> tide::Result {
 
     let mut transaction = req.state().db.begin().await?;
 
-    let mut chore = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
-        .fetch_one(&mut transaction)
+    let mut chores = sqlx::query_as!(Chore, "SELECT * FROM chore where id = ?", id)
+        .fetch_all(&mut transaction)
         .await?;
+    let chore = &mut chores[0];
     chore.apply_update(update);
     sqlx::query!(
         "
